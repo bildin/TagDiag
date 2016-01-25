@@ -2,6 +2,7 @@ package eu.dedb.nfc.tagemulation;
 
 import java.io.DataOutputStream;
 import java.lang.reflect.Method;
+import java.util.Set;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -12,14 +13,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.nfc.INfcTag;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.IInterface;
 import android.os.Message;
 import android.os.Parcel;
+import android.os.Parcelable;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.TextView;
@@ -30,13 +32,14 @@ public class NfcManager extends Activity {
 	boolean mBound;
 	private TextView log;
 	private NfcAdapter dAdapter;
-	private INfcTag iNfcTag;
+	private IInterface iNfcTag;
 	protected IBinder mBinder;
 	private PendingIntent pendingIntent;
 	private IntentFilter[] mFilters;
 	private String[][] mTechLists;
 	protected Tag mTag;
 	private Activity me;
+	protected IBinder tagService;
 
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -77,7 +80,8 @@ public class NfcManager extends Activity {
 		try {
 			Method getTagService = dAdapter.getClass().getMethod(
 					"getTagService", (Class<?>[]) null);
-			iNfcTag = (INfcTag) getTagService.invoke(dAdapter, (Object[]) null);
+			iNfcTag = (IInterface) getTagService.invoke(dAdapter, (Object[]) null);
+			tagService = iNfcTag.asBinder();
 		} catch (Exception e) {
 			log("getTagService failed!");
 		}
@@ -93,6 +97,8 @@ public class NfcManager extends Activity {
 		mFilters = new IntentFilter[] { tech };
 		mTechLists = new String[][] { new String[] { android.nfc.tech.NfcA.class
 				.getName() } };
+		mFilters = null;
+		mTechLists = null;
 	}
 
 	@Override
@@ -100,12 +106,14 @@ public class NfcManager extends Activity {
 
 		Tag tag = null;
 
-		if (intent.getAction().equals(NfcAdapter.ACTION_TECH_DISCOVERED)
+		if ((intent.getAction().equals(NfcAdapter.ACTION_TECH_DISCOVERED)||true)
 				&& ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY))
 			tag = intent.getParcelableExtra(NfcAdapter.EXTRA_TAG);
 
+		log(dumpTag(tag));
+		
 		if (tag != null) {
-			IBinder tagService = null;
+			//IBinder tagService = null;
 
 			Parcel oParcel = Parcel.obtain();
 			tag.writeToParcel(oParcel, 0);
@@ -155,9 +163,10 @@ public class NfcManager extends Activity {
 					+ Hex.toHexstr(new byte[] { (byte) nSak })
 					+ ((oSak != nSak) ? "!" : ""));
 
-			iNfcTag = INfcTag.Stub.asInterface(tagService);
-			if (mBound)
-				mService.setService(iNfcTag);
+//			iNfcTag = INfcTag.Stub.asInterface(tagService);
+//			if (mBound)
+//				mService.setService(iNfcTag);
+			if(mBound) mService.setTagService(tagService);
 
 			mTag = createTag(id, oTechList, oTechExtras, serviceHandle, mBinder);
 		}
@@ -193,10 +202,10 @@ public class NfcManager extends Activity {
 		public void onServiceConnected(ComponentName className, IBinder service) {
 			log("Connected");
 			mBinder = service;
-			NfcProxyBinder binder = (NfcProxyBinder) service;
-			mService = binder.getService();
+			mService = ((NfcProxyBinder) service).getService();
 			mBound = true;
-			mService.setService(iNfcTag);
+			//mService.setService(iNfcTag);
+			mService.setTagService(tagService);
 			mService.setHandler(mHandler);
 		}
 
@@ -241,7 +250,12 @@ public class NfcManager extends Activity {
 	@SuppressLint("HandlerLeak")
 	private Handler mHandler = new Handler() {
 		public void handleMessage(Message msg) {
-			log(msg.getData().getString("action", "-"));
+			if(msg.what==2) {
+				dispatchTag(mTag);
+			}
+			else {
+				log(msg.getData().getString("action"));
+			}
 		}
 	};
 
@@ -257,6 +271,85 @@ public class NfcManager extends Activity {
 		}
 	};
 
+	public static String dumpTag(Tag tag){
+				
+		if(tag==null) return "Tag: null";
+		
+		String[] sTechList = tag.getTechList();
+
+		StringBuilder sb = new StringBuilder();
+		Parcel oParcel = Parcel.obtain();
+		tag.writeToParcel(oParcel, 0);
+		oParcel.setDataPosition(0);
+
+		int len = oParcel.readInt();
+		byte[] id = null;
+		if (len >= 0) {
+			id = new byte[len];
+			oParcel.readByteArray(id);
+		}
+		int tl_len = oParcel.readInt();
+		int[] oTechList = new int[tl_len];
+		oParcel.readIntArray(oTechList);
+		Bundle[] oTechExtras = oParcel.createTypedArray(Bundle.CREATOR);
+		int serviceHandle = oParcel.readInt();
+		int isMock = oParcel.readInt();
+		IBinder tagService = null;
+		if (isMock == 0) {
+			tagService = oParcel.readStrongBinder();
+		} else {
+			tagService = null;
+		}
+		oParcel.recycle();
+
+		sb.append("Tag:\n")
+			.append("\t"+len+" byte UID: "+Hex.toHexstr(id)+"\n")
+			.append("\t"+tl_len+" supported technologies:\n");
+		
+		for (int idx = 0; idx < oTechList.length; idx++) {
+			sb.append("\t\t"+oTechList[idx]+" "+sTechList[idx]+"\n");
+			if (oTechExtras[idx] != null) {
+				sb.append("\t\t\tTech extras:\n");
+				Set<String> keys = oTechExtras[idx].keySet();
+				for(String key : keys.toArray(new String[0])) {
+					Object obj = oTechExtras[idx].get(key);
+					if(obj instanceof byte[]){
+						sb.append("\t\t\t\tbyte[] "+key+" = "+Hex.toHexstr((byte[])obj)+"\n");
+					}
+					else if(obj instanceof Short){
+						sb.append("\t\t\t\tshort "+key+" = 0x"+Hex.toHexstr(new byte[] {(byte)(((Short)obj)&0xFF)})+"\n");
+					}
+					else if(obj instanceof Byte){
+						sb.append("\t\t\t\tbyte "+key+" = 0x"+Hex.toHexstr(new byte[] {(Byte)obj})+"\n");
+					}
+					else if(obj instanceof Integer){
+						sb.append("\t\t\t\tint "+key+" = "+(Integer)obj+"\n");
+					}
+					else if(obj instanceof Boolean){
+						sb.append("\t\t\t\tboolean "+key+" = "+ (Boolean) obj+"\n");
+					}
+					else if(obj instanceof Parcelable){
+						Parcel p = Parcel.obtain();
+						((Parcelable) obj).writeToParcel(p, 0);
+						p.setDataPosition(0);
+						sb.append("\t\t\t\tParcelable "+key+" = "+ Hex.toHexstr(p.marshall())+"\n");
+					}
+				}
+			}
+			else {
+				sb.append("\t\t\tTech extras: null\n");
+			}
+		}
+		sb.append("---\n")
+			.append("\tnativeHandle: "+serviceHandle+"\n")
+			.append("\tINfcTag: "+((isMock==0)?tagService.toString():"is mock")+"\n");
+		return sb.toString();
+	}
+	
+	private void log(int level, String line) {
+		log.append(line + "\n");
+	}
+	
 	private void log(String line) {
 		log.append(line + "\n");
 	}
