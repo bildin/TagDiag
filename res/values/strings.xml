@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TagDiag</string>
+    <string name="help_msg">
+        Use TagDiag Navigator (TDN)\n
+        Long Tap TDN to toggle Tag capturing\n
+        Tap TDN to dispatch current (proxied) Tag\n
+        Move TDN to left side to show log in overlay\n
+        Move TDN to other icons or use buttons in notification to perform other actions.
+        </string>
 </resources>

@@ -73,8 +73,12 @@ public class NfcDiagService extends Service {
 	}
 
 	public static final String BROADCAST_TAG_DISCOVERED = "eu.dedb.nfc.BROADCAST_TAG_DISCOVERED";
-	private static final String BROADCAST_VIEW_LOG = "eu.dedb.nfc.BROADCAST_VIEW_LOG";
-	private static final String BROADCAST_SHOW_NAVIGATOR = "eu.dedb.nfc.BROADCAST_SHOW_NAVIGATOR";
+	public static final String BROADCAST_VIEW_LOG = "eu.dedb.nfc.BROADCAST_VIEW_LOG";
+	public static final String BROADCAST_SHOW_NAVIGATOR = "eu.dedb.nfc.BROADCAST_SHOW_NAVIGATOR";
+	public static final String BROADCAST_SHARE = "eu.dedb.nfc.BROADCAST_SHARE";
+	public static final String BROADCAST_VIEW_SETTINGS = "eu.dedb.nfc.BROADCAST_VIEW_SETTINGS";
+	public static final String BROADCAST_VIEW_HELP = "eu.dedb.nfc.BROADCAST_VIEW_HELP";
+	public static final String BROADCAST_VIEW_INFO = "eu.dedb.nfc.BROADCAST_VIEW_INFO";
 	public static final String DESCRIPTOR = "android.nfc.INfcTag";
 	private static final int LOG_ACT = 4;
 	private static final int LOG_ERR = 8;
@@ -205,6 +209,14 @@ public class NfcDiagService extends Service {
 				proxyTag((Tag) intent.getParcelableExtra(NfcAdapter.EXTRA_TAG));
 			} else if (intent.getAction().equals(BROADCAST_VIEW_LOG)) {
 				openLog();
+			} else if (intent.getAction().equals(BROADCAST_VIEW_HELP)) {
+				openHelp();
+			} else if (intent.getAction().equals(BROADCAST_VIEW_INFO)) {
+				openInfo();
+			} else if (intent.getAction().equals(BROADCAST_VIEW_SETTINGS)) {
+				openSettings();
+			} else if (intent.getAction().equals(BROADCAST_SHARE)) {
+				share();
 			} else if (intent.getAction().equals(BROADCAST_SHOW_NAVIGATOR)) {
 				mNavigator.show();
 			}
@@ -454,12 +466,24 @@ public class NfcDiagService extends Service {
 
 		mNotifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		mBuilder = new NotificationCompat.Builder(this);
-		mBuilder.addAction(R.drawable.gold, "",
+		mBuilder.addAction(android.R.drawable.ic_menu_compass, "",
 				PendingIntent.getBroadcast(this, 0, new Intent(
 						BROADCAST_SHOW_NAVIGATOR), 0));
+		mBuilder.addAction(android.R.drawable.ic_menu_info_details, "",
+				PendingIntent.getBroadcast(this, 0, new Intent(
+						BROADCAST_VIEW_INFO), 0));
 		mBuilder.addAction(android.R.drawable.ic_menu_recent_history, "",
 				PendingIntent.getBroadcast(this, 0, new Intent(
 						BROADCAST_VIEW_LOG), 0));
+		mBuilder.addAction(android.R.drawable.ic_menu_share, "",
+				PendingIntent.getBroadcast(this, 0, new Intent(
+						BROADCAST_SHARE), 0));
+		mBuilder.addAction(android.R.drawable.ic_menu_preferences, "",
+				PendingIntent.getBroadcast(this, 0, new Intent(
+						BROADCAST_VIEW_SETTINGS), 0));
+		mBuilder.addAction(android.R.drawable.ic_menu_help, "",
+				PendingIntent.getBroadcast(this, 0, new Intent(
+						BROADCAST_VIEW_HELP), 0));
 		startForeground(NOTIFICATION_ID, mBuilder.build());
 
 		windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -491,6 +515,10 @@ public class NfcDiagService extends Service {
 		filter.addAction(BROADCAST_TAG_DISCOVERED);
 		filter.addAction(BROADCAST_VIEW_LOG);
 		filter.addAction(BROADCAST_SHOW_NAVIGATOR);
+		filter.addAction(BROADCAST_SHARE);
+		filter.addAction(BROADCAST_VIEW_HELP);
+		filter.addAction(BROADCAST_VIEW_SETTINGS);
+		filter.addAction(BROADCAST_VIEW_INFO);
 		registerReceiver(receiver, filter);
 	}
 
