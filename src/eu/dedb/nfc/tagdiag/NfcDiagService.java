@@ -290,6 +290,8 @@ public class NfcDiagService extends Service {
 			if (msg.what == STATE_CHANGED_TAG && isPresent == 1) {
 				Tag tag = redicover();
 				proxyTag(tag);
+				// TODO test read
+				//
 				dispatchTag();
 			}
 
@@ -392,9 +394,11 @@ public class NfcDiagService extends Service {
 	}
 
 	public void dispatchTag() {
-		log("Dispatching...", LOG_FULL);
-		if (mTag == null)
+		if (mTag == null) {
+			log("Nothing to dispatch", LOG_FULL);
 			return;
+		}
+		log("Dispatching...", LOG_FULL);
 		Intent intent = new Intent(NfcAdapter.ACTION_TECH_DISCOVERED, null);
 		intent.putExtra(NfcAdapter.EXTRA_TAG, mTag);
 		intent.putExtra(NfcAdapter.EXTRA_ID, mTag.getId());
@@ -405,17 +409,16 @@ public class NfcDiagService extends Service {
 		chooser.setClass(this, AppChooser.class);
 		startActivity(chooser);
 
-		// if (SysUtils.hasPermission(getBaseContext(),
-		// android.Manifest.permission.WRITE_SECURE_SETTINGS)
-		// && mTag != null) {
-		// try {
-		// Method dispatch = dAdapter.getClass().getMethod("dispatch",
-		// mTag.getClass());
-		// dispatch.invoke(dAdapter, mTag);
-		// } catch (Exception e) {
-		// log("dispatchTag failed " + e);
-		// }
-		// }
+		// TODO feature
+		if (checkCallingOrSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
+			try {
+				Method dispatch = dAdapter.getClass().getMethod("dispatch",
+						mTag.getClass());
+				dispatch.invoke(dAdapter, mTag);
+			} catch (Exception e) {
+				log("dispatchTag failed " + e, LOG_FULL);
+			}
+		}
 	}
 
 	private int getKey(SparseArray<String> array, String value) {
@@ -498,9 +501,9 @@ public class NfcDiagService extends Service {
 		if (dAdapter != null) {
 			try {
 				Method getTagService = dAdapter.getClass().getMethod(
-						"getTagService", (Class<?>[]) null);
-				IInterface iNfcTag = (IInterface) getTagService.invoke(
-						dAdapter, (Object[]) null);
+						"getTagService");
+				IInterface iNfcTag = (IInterface) getTagService
+						.invoke(dAdapter);
 				this.tagService = iNfcTag.asBinder();
 			} catch (Exception e) {
 				log(e, LOG_ERR);
@@ -520,6 +523,7 @@ public class NfcDiagService extends Service {
 		registerReceiver(receiver, filter);
 	}
 
+	@SuppressLint("NewApi")
 	private void collectInfo() {
 		List<String> build = SysUtils.getBuildInfo();
 		List<String> devs = NfcUtils.getNfcDeviceList();
@@ -572,6 +576,45 @@ public class NfcDiagService extends Service {
 				"android.nfc.cardemulation.action.HOST_APDU_SERVICE"),
 				"HOST_APDU_SERVICE:", "\t"));
 
+		// get HCE info (root)
+		// TODO feature
+		if (android.os.Build.VERSION.SDK_INT >= 19
+				&& checkCallingOrSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED)
+			try {
+				android.nfc.cardemulation.CardEmulation cardEmulation = android.nfc.cardemulation.CardEmulation
+						.getInstance(dAdapter);
+				Class<?> cApduServiceInfo = Class
+						.forName("android.nfc.cardemulation.ApduServiceInfo");
+				Method toString = cApduServiceInfo
+						.getDeclaredMethod("toString");
+				List<?> services = null;
+				Method getServices = cardEmulation.getClass().getMethod(
+						"getServices", String.class);
+				services = (List<?>) getServices.invoke(cardEmulation,
+						android.nfc.cardemulation.CardEmulation.CATEGORY_OTHER);
+				if (services != null) {
+					java.util.Iterator<?> iterator = services.iterator();
+					while (iterator.hasNext()) {
+						Object apduServiceInfo = iterator.next();
+						String value = (String) toString
+								.invoke(apduServiceInfo);
+						appInfo.append("\n" + value + "\n");
+					}
+				}
+				services = (List<?>) getServices
+						.invoke(cardEmulation,
+								android.nfc.cardemulation.CardEmulation.CATEGORY_PAYMENT);
+				if (services != null) {
+					java.util.Iterator<?> iterator = services.iterator();
+					while (iterator.hasNext()) {
+						Object apduServiceInfo = iterator.next();
+						String value = (String) toString
+								.invoke(apduServiceInfo);
+						appInfo.append("\n" + value + "\n");
+					}
+				}
+			} catch (Exception e) {
+			}
 	}
 
 	@Override
@@ -657,30 +700,26 @@ public class NfcDiagService extends Service {
 					log("(Mifare raw transcation)", LOG_ACT);
 					break;
 				case (byte) 0x01:
-					log("(Mifare proprietary ReadN)",
-							LOG_ACT);
+					log("(Mifare proprietary ReadN)", LOG_ACT);
 					break;
 				case (byte) 0x02:
-					log("(Mifare proprietary WriteN)",
-							LOG_ACT);
+					log("(Mifare proprietary WriteN)", LOG_ACT);
 					break;
 				case (byte) 0x03:
-					log("(Mifare proprietary SectorSel)",
-							LOG_ACT);
+					log("(Mifare proprietary SectorSel)", LOG_ACT);
 					break;
 				case (byte) 0x04:
-					log("(Mifare proprietary Auth)",
-							LOG_ACT);
+					log("(Mifare proprietary Auth)", LOG_ACT);
 					break;
 				case (byte) 0x05:
-					log("(Mifare proprietary ProxCheck)",
-							LOG_ACT);
+					log("(Mifare proprietary ProxCheck)", LOG_ACT);
 					break;
-					
+
 				case 0x30:
-					log("(Mifare read 16 bytes from block/page 0x"
-							+ StringUtils.printBytes(data_send[1]) + ")",
-							LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare read 16 bytes from block/page 0x"
+								+ StringUtils.printBytes(data_send[1]) + ")",
+								LOG_ACT);
 					break;
 				case (byte) 0x38:
 					log("(Mifare read sector 0x"
@@ -694,48 +733,51 @@ public class NfcDiagService extends Service {
 						key = new byte[6];
 						System.arraycopy(data_send, 6, key, 0, 6);
 					}
-					log("(Mifare auth block 0x"
-							+ StringUtils.printBytes(data_send[1])
-							+ " with KEY "
-							+ ((data_send[0] == 0x60) ? "A" : "B") + ": "
-							+ StringUtils.printBytes(key) + ")", LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare auth block 0x"
+								+ StringUtils.printBytes(data_send[1])
+								+ " with KEY "
+								+ ((data_send[0] == 0x60) ? "A" : "B") + ": "
+								+ StringUtils.printBytes(key) + ")", LOG_ACT);
 					break;
 				case (byte) 0xA0:
-					log("(Mifare write 16 bytes to block/page 0x"
-							+ StringUtils.printBytes(data_send[1]) + ")",
-							LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare write 16 bytes to block/page 0x"
+								+ StringUtils.printBytes(data_send[1]) + ")",
+								LOG_ACT);
 					break;
 				case (byte) 0xA2:
-					log("(Mifare write 4 bytes to block/page 0x"
-							+ StringUtils.printBytes(data_send[1]) + ")",
-							LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare write 4 bytes to block/page 0x"
+								+ StringUtils.printBytes(data_send[1]) + ")",
+								LOG_ACT);
 					break;
 				case (byte) 0xC1:
-					log("(Mifare increment value in block 0x"
-							+ StringUtils.printBytes(data_send[1]) + ")",
-							LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare increment value in block 0x"
+								+ StringUtils.printBytes(data_send[1]) + ")",
+								LOG_ACT);
 					break;
 				case (byte) 0xB0:
-					log("(Mifare transfer)",
-							LOG_ACT);
+					log("(Mifare transfer)", LOG_ACT);
 					break;
 				case (byte) 0xC0:
-					log("(Mifare decrement value in block 0x"
-							+ StringUtils.printBytes(data_send[1]) + ")",
-							LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare decrement value in block 0x"
+								+ StringUtils.printBytes(data_send[1]) + ")",
+								LOG_ACT);
 					break;
 				case (byte) 0xA8:
-					log("(Mifare write sector 0x"
-							+ StringUtils.printBytes(data_send[1]) + ")",
-							LOG_ACT);
+					if (data_send.length > 1)
+						log("(Mifare write sector 0x"
+								+ StringUtils.printBytes(data_send[1]) + ")",
+								LOG_ACT);
 					break;
 				case (byte) 0xC2:
-					log("(Mifare restore)",
-							LOG_ACT);
+					log("(Mifare restore)", LOG_ACT);
 					break;
 				case (byte) 0xFF:
-					log("(Mifare invalid command)",
-							LOG_ACT);
+					log("(Mifare invalid command)", LOG_ACT);
 					break;
 				default:
 					break;

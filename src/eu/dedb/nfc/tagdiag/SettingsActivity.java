@@ -1,6 +1,7 @@
 package eu.dedb.nfc.tagdiag;
 
 import android.app.Activity;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import eu.dedb.utils.SysUtils;
 
@@ -14,9 +15,8 @@ public class SettingsActivity extends Activity {
 	}
 
 	protected void grantPermission() {
-		// try to get WRITE_SECURE_SETTINGS permission (needs root)
-		if (!SysUtils.hasPermission(this,
-				android.Manifest.permission.WRITE_SECURE_SETTINGS)) {
+		// TODO grant WRITE_SECURE_SETTINGS permission (root)
+		if (checkCallingOrSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) != PackageManager.PERMISSION_GRANTED) {
 			SysUtils.grantPermission(this,
 					android.Manifest.permission.WRITE_SECURE_SETTINGS);
 		}

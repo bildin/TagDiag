@@ -163,9 +163,8 @@ public class NfcUtils {
 		try {
 			NfcAdapter dAdapter = NfcAdapter.getDefaultAdapter(ctx);
 			Method getTagService = dAdapter.getClass().getMethod(
-					"getTagService", (Class<?>[]) null);
-			IInterface iNfcTag = (IInterface) getTagService.invoke(dAdapter,
-					(Object[]) null);
+					"getTagService");
+			IInterface iNfcTag = (IInterface) getTagService.invoke(dAdapter);
 			return iNfcTag.asBinder();
 		} catch (Exception e) {
 			return null;

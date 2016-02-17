@@ -20,10 +20,6 @@ public class SysUtils {
 
 	private static int BUFFER_LENGTH = 1024;
 
-	public static boolean hasPermission(Context ctx, String permission) {
-		return ctx.checkCallingOrSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED;
-	}
-
 	public static String[] grantPermission(Context ctx, String permission) {
 		String command = "pm grant " + ctx.getPackageName() + " " + permission;
 		String[] result = exec(ENV_SUPERUSER, command);
