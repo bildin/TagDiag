@@ -21,7 +21,7 @@ public class StringUtils {
 	}
 	
 	public static String printBytes(byte... bytes) {
-		return printBytes(" ", bytes);
+		return printBytes("", bytes);
 	}
 	
 	public static String printBytes(String spacer, byte... bytes) {

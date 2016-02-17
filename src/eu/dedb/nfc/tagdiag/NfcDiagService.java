@@ -340,7 +340,7 @@ public class NfcDiagService extends Service {
 		mNavigator.setMenuItem(0, 2, android.R.drawable.ic_menu_view);
 
 		mNavigator.setMenuItem(2, 0, android.R.drawable.ic_menu_delete);
-		
+
 		mNavigator.setMenuItem(2, 2, android.R.drawable.ic_menu_help);
 
 		mNavigator.setMenuItem(2, 4,
@@ -475,15 +475,13 @@ public class NfcDiagService extends Service {
 		mBuilder.addAction(android.R.drawable.ic_menu_recent_history, "",
 				PendingIntent.getBroadcast(this, 0, new Intent(
 						BROADCAST_VIEW_LOG), 0));
-		mBuilder.addAction(android.R.drawable.ic_menu_share, "",
-				PendingIntent.getBroadcast(this, 0, new Intent(
-						BROADCAST_SHARE), 0));
+		mBuilder.addAction(android.R.drawable.ic_menu_share, "", PendingIntent
+				.getBroadcast(this, 0, new Intent(BROADCAST_SHARE), 0));
 		mBuilder.addAction(android.R.drawable.ic_menu_preferences, "",
 				PendingIntent.getBroadcast(this, 0, new Intent(
 						BROADCAST_VIEW_SETTINGS), 0));
-		mBuilder.addAction(android.R.drawable.ic_menu_help, "",
-				PendingIntent.getBroadcast(this, 0, new Intent(
-						BROADCAST_VIEW_HELP), 0));
+		mBuilder.addAction(android.R.drawable.ic_menu_help, "", PendingIntent
+				.getBroadcast(this, 0, new Intent(BROADCAST_VIEW_HELP), 0));
 		startForeground(NOTIFICATION_ID, mBuilder.build());
 
 		windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
@@ -655,19 +653,89 @@ public class NfcDiagService extends Service {
 
 			if (!raw) {
 				switch (data_send[0]) {
+				case 0x00:
+					log("(Mifare raw transcation)", LOG_ACT);
+					break;
+				case (byte) 0x01:
+					log("(Mifare proprietary ReadN)",
+							LOG_ACT);
+					break;
+				case (byte) 0x02:
+					log("(Mifare proprietary WriteN)",
+							LOG_ACT);
+					break;
+				case (byte) 0x03:
+					log("(Mifare proprietary SectorSel)",
+							LOG_ACT);
+					break;
+				case (byte) 0x04:
+					log("(Mifare proprietary Auth)",
+							LOG_ACT);
+					break;
+				case (byte) 0x05:
+					log("(Mifare proprietary ProxCheck)",
+							LOG_ACT);
+					break;
+					
 				case 0x30:
-					log("(Read block/page 0x"
+					log("(Mifare read 16 bytes from block/page 0x"
+							+ StringUtils.printBytes(data_send[1]) + ")",
+							LOG_ACT);
+					break;
+				case (byte) 0x38:
+					log("(Mifare read sector 0x"
 							+ StringUtils.printBytes(data_send[1]) + ")",
 							LOG_ACT);
 					break;
 				case 0x60:
 				case 0x61:
-					byte[] key = new byte[6];
-					System.arraycopy(data_send, 6, key, 0, 6);
-					log("(Auth block 0x" + StringUtils.printBytes(data_send[1])
-							+ " with key "
+					byte[] key = null;
+					if (data_send.length == 12) {
+						key = new byte[6];
+						System.arraycopy(data_send, 6, key, 0, 6);
+					}
+					log("(Mifare auth block 0x"
+							+ StringUtils.printBytes(data_send[1])
+							+ " with KEY "
 							+ ((data_send[0] == 0x60) ? "A" : "B") + ": "
 							+ StringUtils.printBytes(key) + ")", LOG_ACT);
+					break;
+				case (byte) 0xA0:
+					log("(Mifare write 16 bytes to block/page 0x"
+							+ StringUtils.printBytes(data_send[1]) + ")",
+							LOG_ACT);
+					break;
+				case (byte) 0xA2:
+					log("(Mifare write 4 bytes to block/page 0x"
+							+ StringUtils.printBytes(data_send[1]) + ")",
+							LOG_ACT);
+					break;
+				case (byte) 0xC1:
+					log("(Mifare increment value in block 0x"
+							+ StringUtils.printBytes(data_send[1]) + ")",
+							LOG_ACT);
+					break;
+				case (byte) 0xB0:
+					log("(Mifare transfer)",
+							LOG_ACT);
+					break;
+				case (byte) 0xC0:
+					log("(Mifare decrement value in block 0x"
+							+ StringUtils.printBytes(data_send[1]) + ")",
+							LOG_ACT);
+					break;
+				case (byte) 0xA8:
+					log("(Mifare write sector 0x"
+							+ StringUtils.printBytes(data_send[1]) + ")",
+							LOG_ACT);
+					break;
+				case (byte) 0xC2:
+					log("(Mifare restore)",
+							LOG_ACT);
+					break;
+				case (byte) 0xFF:
+					log("(Mifare invalid command)",
+							LOG_ACT);
 					break;
 				default:
 					break;
