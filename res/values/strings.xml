@@ -2,10 +2,10 @@
 <resources>
     <string name="app_name">TagDiag</string>
     <string name="help_msg">
-        Use TagDiag Navigator (TDN)\n
-        Long Tap TDN to toggle Tag capturing\n
-        Tap TDN to dispatch current (proxied) Tag\n
-        Move TDN to left side to show log in overlay\n
-        Move TDN to other icons or use buttons in notification to perform other actions.
+        Use TagDiag Navigation Icon (TDNI)\n
+        Long Tap TDNI to toggle Tag capturing\n
+        Tap TDNI to dispatch current (proxied) Tag\n
+        Move TDNI to left side to show log in overlay\n
+        Move TDNI to other icons or use buttons in notification to perform other actions.
         </string>
 </resources>
