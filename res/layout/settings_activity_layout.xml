@@ -3,9 +3,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
-
+    
     <TextView
         android:id="@+id/textView1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Grant system permission (ROOT)" />
+    <CheckBox
+        android:id="@+id/permission"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="WRITE_SECURE_SETTINGS" />
+
+    <TextView
+        android:id="@+id/textView2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Dispatch As" />
@@ -28,12 +39,17 @@
             android:layout_height="wrap_content"
             android:enabled="false"
             android:text="ACTION_TAG_DISCOVERED" />
-
+    </RadioGroup>
+    <RadioGroup
+        android:id="@+id/radioGroup2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
         <RadioButton
             android:id="@+id/radioButton3"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:enabled="false"
+            android:checked="true"
             android:text="TAG SERVICE DISPATCH (ROOT)" />
 
     </RadioGroup>

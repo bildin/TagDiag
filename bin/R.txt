@@ -386,13 +386,15 @@ int id middle 0x7f09001d
 int id never 0x7f090017
 int id none 0x7f09000f
 int id normal 0x7f09000b
+int id permission 0x7f090048
 int id progress_circular 0x7f090007
 int id progress_horizontal 0x7f090008
 int id radio 0x7f09002b
-int id radioButton1 0x7f090049
-int id radioButton2 0x7f09004a
-int id radioButton3 0x7f09004b
-int id radioGroup1 0x7f090048
+int id radioButton1 0x7f09004b
+int id radioButton2 0x7f09004c
+int id radioButton3 0x7f09004e
+int id radioGroup1 0x7f09004a
+int id radioGroup2 0x7f09004d
 int id reload_log 0x7f090046
 int id search_badge 0x7f090035
 int id search_bar 0x7f090034
@@ -415,6 +417,7 @@ int id submit_area 0x7f09003c
 int id sys 0x7f090042
 int id tabMode 0x7f09000c
 int id textView1 0x7f09003f
+int id textView2 0x7f090049
 int id title 0x7f090027
 int id up 0x7f090001
 int id useLogo 0x7f090013

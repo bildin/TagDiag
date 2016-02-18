@@ -29,6 +29,15 @@ public class SysUtils {
 		return result;
 	}
 
+	public static String[] revokePermission(Context ctx, String permission) {
+		String command = "pm revoke " + ctx.getPackageName() + " " + permission;
+		String[] result = exec(ENV_SUPERUSER, command);
+		if (result[1].length() == 0 && result[2].length() == 0) {
+			return null;
+		}
+		return result;
+	}
+	
 	public static String[] exec(String env, List<String> commands) {
 		return exec(env, commands.toArray(new String[0]));
 	}

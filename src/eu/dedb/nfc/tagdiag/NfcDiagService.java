@@ -404,26 +404,30 @@ public class NfcDiagService extends Service {
 			log("Nothing to dispatch", LOG_FULL);
 			return;
 		}
-		log("Dispatching...", LOG_FULL);
-		Intent intent = new Intent(NfcAdapter.ACTION_TECH_DISCOVERED, null);
-		intent.putExtra(NfcAdapter.EXTRA_TAG, mTag);
-		intent.putExtra(NfcAdapter.EXTRA_ID, mTag.getId());
-		Intent chooser = new Intent(Intent.ACTION_PICK_ACTIVITY);
-		chooser.putExtra(Intent.EXTRA_INTENT, intent);
-		chooser.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-				| Intent.FLAG_ACTIVITY_CLEAR_TASK);
-		chooser.setClass(this, AppChooser.class);
-		startActivity(chooser);
-
 		// TODO feature
+		boolean success = false;
 		if (checkCallingOrSelfPermission(android.Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED) {
+			log("Dispatching... (system)", LOG_FULL);
 			try {
 				Method dispatch = dAdapter.getClass().getMethod("dispatch",
 						mTag.getClass());
 				dispatch.invoke(dAdapter, mTag);
+				success = true;
 			} catch (Exception e) {
-				log("dispatchTag failed " + e, LOG_FULL);
+				log("System dispatch failed: " + e, LOG_FULL);
 			}
+		}
+		if (!success) {
+			log("Dispatching... (pick activity)", LOG_FULL);
+			Intent intent = new Intent(NfcAdapter.ACTION_TECH_DISCOVERED, null);
+			intent.putExtra(NfcAdapter.EXTRA_TAG, mTag);
+			intent.putExtra(NfcAdapter.EXTRA_ID, mTag.getId());
+			Intent chooser = new Intent(Intent.ACTION_PICK_ACTIVITY);
+			chooser.putExtra(Intent.EXTRA_INTENT, intent);
+			chooser.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+					| Intent.FLAG_ACTIVITY_CLEAR_TASK);
+			chooser.setClass(this, AppChooser.class);
+			startActivity(chooser);
 		}
 	}
 
@@ -473,6 +477,8 @@ public class NfcDiagService extends Service {
 	public void onCreate() {
 		super.onCreate();
 
+		dAdapter = NfcAdapter.getDefaultAdapter(this);
+
 		mNotifyManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 		mBuilder = new NotificationCompat.Builder(this);
 		mBuilder.addAction(android.R.drawable.ic_menu_compass, "",
@@ -502,7 +508,6 @@ public class NfcDiagService extends Service {
 		configureNavigator();
 		collectInfo();
 
-		dAdapter = NfcAdapter.getDefaultAdapter(this);
 
 		if (dAdapter != null) {
 			try {
@@ -620,6 +625,7 @@ public class NfcDiagService extends Service {
 					}
 				}
 			} catch (Exception e) {
+				e.printStackTrace();
 			}
 	}
 
