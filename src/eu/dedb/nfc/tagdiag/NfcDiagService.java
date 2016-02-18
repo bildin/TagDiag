@@ -59,7 +59,13 @@ public class NfcDiagService extends Service {
 		@Override
 		protected boolean onTransact(int code, Parcel data, Parcel reply,
 				int flags) throws RemoteException {
-			log(transactions.get(code)
+			String transaction_name = transactions.get(code);
+			if (transaction_name == null)
+				transaction_name = "unknown transaction";
+			log(transaction_name
+					+ "("
+					+ code
+					+ ")"
 					+ " from "
 					+ getBaseContext().getPackageManager().getNameForUid(
 							Binder.getCallingUid()), LOG_ACT);
@@ -662,6 +668,9 @@ public class NfcDiagService extends Service {
 
 	public void parseTransaction(int code, Parcel data, Parcel reply, int flags) {
 
+		if (transactions.get(code) == null)
+			return;
+
 		if (transactions.get(code).equals("TRANSACTION_connect")) {
 			data.enforceInterface(DESCRIPTOR);
 			data.readInt();
@@ -697,7 +706,7 @@ public class NfcDiagService extends Service {
 			if (!raw) {
 				switch (data_send[0]) {
 				case 0x00:
-					log("(Mifare raw transcation)", LOG_ACT);
+					log("(Mifare raw transaction)", LOG_ACT);
 					break;
 				case (byte) 0x01:
 					log("(Mifare proprietary ReadN)", LOG_ACT);
@@ -728,17 +737,15 @@ public class NfcDiagService extends Service {
 					break;
 				case 0x60:
 				case 0x61:
-					byte[] key = null;
 					if (data_send.length == 12) {
-						key = new byte[6];
+						byte[] key = new byte[6];
 						System.arraycopy(data_send, 6, key, 0, 6);
-					}
-					if (data_send.length > 1)
 						log("(Mifare auth block 0x"
 								+ StringUtils.printBytes(data_send[1])
 								+ " with KEY "
 								+ ((data_send[0] == 0x60) ? "A" : "B") + ": "
 								+ StringUtils.printBytes(key) + ")", LOG_ACT);
+					}
 					break;
 				case (byte) 0xA0:
 					if (data_send.length > 1)
